@@ -187,29 +187,159 @@ function SelectField({
   label,
   hint,
 }: SelectFieldProps) {
+  const generatedId = React.useId()
+  const triggerId = id ?? `${generatedId}-select`
+  const labelId = `${triggerId}-label`
+  const listboxId = `${triggerId}-listbox`
+  const [open, setOpen] = React.useState(false)
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const filteredOptions = React.useMemo(
+    () =>
+      options.filter(
+        (option, index, arr) =>
+          option.value !== '' && arr.findIndex((candidate) => candidate.value === option.value) === index,
+      ),
+    [options],
+  )
+  const selectedIndex = Math.max(
+    0,
+    filteredOptions.findIndex((option) => option.value === value),
+  )
+  const selectedOption = filteredOptions[selectedIndex]
+  const selectedLabel = selectedOption?.label ?? value
+  const wrapperClass = React.useMemo(
+    () =>
+      cn(
+        'relative',
+        className?.includes('w-full') ? 'block w-full' : 'inline-block',
+        !className?.includes('w-') && !className?.includes('min-w-') && 'min-w-32',
+      ),
+    [className],
+  )
+
+  React.useEffect(() => {
+    if (!open) return
+    function handlePointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [open])
+
+  function selectValue(next: string) {
+    const option = filteredOptions.find((candidate) => candidate.value === next)
+    if (disabled || option?.disabled) return
+    onValueChange(next)
+    setOpen(false)
+  }
+
+  function moveSelection(delta: 1 | -1) {
+    if (!filteredOptions.length) return
+    const start = selectedIndex < 0 ? 0 : selectedIndex
+    for (let step = 1; step <= filteredOptions.length; step += 1) {
+      const nextIndex = (start + delta * step + filteredOptions.length) % filteredOptions.length
+      const next = filteredOptions[nextIndex]
+      if (!next?.disabled) {
+        selectValue(next.value)
+        return
+      }
+    }
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (disabled) return
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      if (!open) setOpen(true)
+      else moveSelection(1)
+      return
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      if (!open) setOpen(true)
+      else moveSelection(-1)
+      return
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      setOpen((current) => !current)
+      return
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      setOpen(false)
+    }
+  }
+
   const select = (
-    <Select value={value} onValueChange={onValueChange} disabled={disabled} name={name} required={required}>
-      <SelectTrigger id={id} aria-label={ariaLabel} className={cn('w-auto min-w-32', className)}>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {options.filter((option, index, arr) =>
-          option.value !== '' && arr.findIndex((o) => o.value === option.value) === index
-        ).map((option) => (
-          <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className={wrapperClass} ref={rootRef}>
+      {name ? <input name={name} required={required} type="hidden" value={value} /> : null}
+      <button
+        aria-controls={listboxId}
+        aria-disabled={disabled || undefined}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={ariaLabel}
+        aria-labelledby={!ariaLabel && label ? labelId : undefined}
+        className={cn(
+          'flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-950 shadow-sm outline-none transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50',
+          className,
+        )}
+        disabled={disabled}
+        id={triggerId}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={handleKeyDown}
+        role="combobox"
+        type="button"
+      >
+        <span className={cn('truncate', !selectedOption && 'text-gray-400')}>
+          {selectedOption ? selectedLabel : (placeholder ?? '')}
+        </span>
+        <ChevronDownIcon aria-hidden="true" className="size-4 shrink-0 text-gray-400" />
+      </button>
+      {open ? (
+        <div
+          className="absolute z-50 mt-1 max-h-72 w-full overflow-auto rounded-lg border border-gray-200 bg-white p-1 text-sm text-gray-950 shadow-lg"
+          id={listboxId}
+          role="listbox"
+        >
+          {filteredOptions.map((option) => {
+            const selected = option.value === value
+            return (
+              <button
+                aria-disabled={option.disabled || undefined}
+                aria-selected={selected}
+                className={cn(
+                  'flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
+                  option.disabled
+                    ? 'cursor-not-allowed text-gray-400'
+                    : 'text-gray-700 hover:bg-blue-50 hover:text-blue-900',
+                  selected && 'bg-blue-50 text-blue-900',
+                )}
+                disabled={option.disabled}
+                key={option.value}
+                onClick={() => selectValue(option.value)}
+                role="option"
+                type="button"
+              >
+                <span className="truncate">{option.label}</span>
+                {selected ? <CheckIcon aria-hidden="true" className="size-4 shrink-0" /> : null}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
+    </div>
   )
   if (!label && !hint) return select
   return (
-    <label className="block space-y-1 text-sm font-medium text-gray-700">
-      {label ? <span>{label}</span> : null}
+    <div className="block space-y-1 text-sm font-medium text-gray-700">
+      {label ? <span id={labelId}>{label}</span> : null}
       {select}
       {hint ? <span className="block text-xs font-normal text-gray-500">{hint}</span> : null}
-    </label>
+    </div>
   )
 }
 
