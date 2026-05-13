@@ -5,6 +5,7 @@ export interface RowAction {
   key?: string
   label: string
   onAction: () => void | Promise<void>
+  hidden?: boolean
   variant?: ButtonProps['variant']
   size?: ButtonProps['size']
   disabled?: boolean
@@ -25,7 +26,7 @@ export interface RowActionsProps {
 export function RowActions({ actions, size = 'sm' }: RowActionsProps) {
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      {actions.map((action) =>
+      {actions.filter((action) => !action.hidden).map((action) =>
         action.confirm ? (
           <ConfirmButton
             key={action.key ?? action.label}

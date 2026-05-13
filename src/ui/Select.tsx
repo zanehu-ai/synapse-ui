@@ -161,6 +161,8 @@ function SelectScrollDownButton({
 export interface SelectFieldProps {
   'aria-label'?: string
   id?: string
+  name?: string
+  required?: boolean
   value: string
   onValueChange: (value: string) => void
   options: readonly SelectOption[]
@@ -174,6 +176,8 @@ export interface SelectFieldProps {
 function SelectField({
   'aria-label': ariaLabel,
   id,
+  name,
+  required,
   value,
   onValueChange,
   options,
@@ -184,7 +188,7 @@ function SelectField({
   hint,
 }: SelectFieldProps) {
   const select = (
-    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+    <Select value={value} onValueChange={onValueChange} disabled={disabled} name={name} required={required}>
       <SelectTrigger id={id} aria-label={ariaLabel} className={cn('w-auto min-w-32', className)}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>

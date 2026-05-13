@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from 'react'
+import { type Key, type ReactNode, useMemo } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -29,6 +29,7 @@ export interface DataTableProps<T> {
   /** TanStack Table column definitions (new format) */
   columnDefs?: ColumnDef<T, unknown>[]
   data: T[]
+  getRowKey?: (record: T, index: number) => Key
   loading?: boolean
   page?: number
   pageSize?: number
@@ -89,6 +90,7 @@ export function DataTable<T>({
   columns,
   columnDefs,
   data,
+  getRowKey,
   loading,
   page = 1,
   pageSize = 10,
@@ -151,7 +153,7 @@ export function DataTable<T>({
             </TableRow>
           ) : (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow key={getRowKey ? getRowKey(row.original, row.index) : row.id}>
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
