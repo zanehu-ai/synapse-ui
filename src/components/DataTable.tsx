@@ -17,7 +17,7 @@ import { Pagination } from './Pagination'
  */
 export interface Column<T> {
   key: string
-  title: string
+  title: ReactNode
   render?: (value: unknown, record: T, index: number) => ReactNode
   width?: number
   sortable?: boolean

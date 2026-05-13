@@ -20,6 +20,7 @@ export type { Locale, TranslationDict, Translations } from './i18n/types'
 // UI Components
 export { Button, type ButtonProps } from './ui/Button'
 export { Badge, type BadgeProps } from './ui/Badge'
+export { Alert, type AlertProps, type AlertVariant } from './ui/Alert'
 export { Card, CardHeader, CardTitle, CardContent } from './ui/Card'
 export { Input, type InputProps } from './ui/Input'
 export { Textarea, type TextareaProps } from './ui/Textarea'
@@ -31,7 +32,7 @@ export {
 export {
   Select, SelectContent, SelectField, SelectGroup, SelectItem,
   SelectLabel, SelectSeparator, SelectTrigger, SelectValue,
-  type SelectOption,
+  type SelectFieldProps, type SelectOption,
 } from './ui/Select'
 export {
   DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent,
@@ -63,6 +64,64 @@ export { Avatar, AvatarFallback, AvatarImage } from './ui/Avatar'
 export { ErrorBoundary } from './components/ErrorBoundary'
 export { DataTable, type Column } from './components/DataTable'
 export { Pagination } from './components/Pagination'
+export { Layout, type LayoutProps } from './components/Layout'
+export { PageHeader, type PageHeaderProps } from './components/PageHeader'
+export { FilterBar } from './components/FilterBar'
+export { EmptyState, type EmptyStateProps } from './components/EmptyState'
+export { StatusBadge, type StatusBadgeProps } from './components/StatusBadge'
+export { ConfirmDialog, type ConfirmDialogProps } from './components/ConfirmDialog'
+export { ConfirmButton, type ConfirmButtonProps } from './components/ConfirmButton'
+export { RowActions, type RowAction, type RowActionsProps } from './components/RowActions'
+export {
+  CheckboxField,
+  FileInput,
+  RangeInput,
+  ToggleChip,
+  type CheckboxFieldProps,
+  type FileInputProps,
+  type RangeInputProps,
+  type ToggleChipProps,
+} from './components/FormControls'
+export {
+  SidebarNavigation,
+  TopNavigation,
+  type NavigationLinkComponent,
+  type NavigationLinkProps,
+  type SidebarNavigationItem,
+  type SidebarNavigationProps,
+  type TopNavigationItem,
+  type TopNavigationProps,
+} from './components/Navigation'
+
+// Chat widgets
+export {
+  ConversationView,
+  LanguageSwitcher,
+  MessageBubble,
+  MessageInput,
+  MessageList,
+  TransferToHumanButton,
+  TypingIndicator,
+  chatI18n,
+  chatT,
+  pickChatDictionary,
+} from './chat'
+export type {
+  ChatConversation,
+  ChatDictionary,
+  ChatLang,
+  ChatLanguage,
+  ChatMessage,
+  ChatMessageRole,
+  ConversationFetcher,
+  ConversationViewProps,
+  LanguageSwitcherProps,
+  MessageBubbleProps,
+  MessageInputProps,
+  MessageListProps,
+  TransferToHumanButtonProps,
+  TypingIndicatorProps,
+} from './chat'
 
 // Hooks
 export { usePagination } from './hooks/usePagination'

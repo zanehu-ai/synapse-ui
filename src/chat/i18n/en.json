@@ -1,0 +1,31 @@
+{
+  "input": {
+    "placeholder": "Type your message...",
+    "send": "Send",
+    "disabled-closed": "This conversation is closed."
+  },
+  "transfer": {
+    "label": "Talk to a human",
+    "confirm": "Are you sure you want to transfer to a human agent?"
+  },
+  "typing": {
+    "ai": "AI is typing...",
+    "agent": "Agent is typing..."
+  },
+  "language-switcher": {
+    "label": "Language",
+    "ru": "Русский",
+    "en": "English",
+    "zh": "中文"
+  },
+  "messages": {
+    "empty": "No messages yet. Send the first one to start.",
+    "loading": "Loading conversation..."
+  },
+  "roles": {
+    "user": "You",
+    "ai": "AI assistant",
+    "agent": "Agent",
+    "system": "System"
+  }
+}

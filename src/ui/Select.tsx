@@ -4,8 +4,9 @@ import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 import { cn } from '../utils/cn'
 
 export type SelectOption = {
-  label: string
+  label: React.ReactNode
   value: string
+  disabled?: boolean
 }
 
 function Select({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
@@ -157,36 +158,52 @@ function SelectScrollDownButton({
   )
 }
 
+export interface SelectFieldProps {
+  'aria-label'?: string
+  value: string
+  onValueChange: (value: string) => void
+  options: readonly SelectOption[]
+  placeholder?: string
+  className?: string
+  disabled?: boolean
+  label?: React.ReactNode
+  hint?: React.ReactNode
+}
+
 function SelectField({
+  'aria-label': ariaLabel,
   value,
   onValueChange,
   options,
   placeholder,
   className,
   disabled,
-}: {
-  value: string
-  onValueChange: (value: string) => void
-  options: readonly SelectOption[]
-  placeholder: string
-  className?: string
-  disabled?: boolean
-}) {
-  return (
+  label,
+  hint,
+}: SelectFieldProps) {
+  const select = (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger className={cn('w-auto min-w-32', className)}>
+      <SelectTrigger aria-label={ariaLabel} className={cn('w-auto min-w-32', className)}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
         {options.filter((option, index, arr) =>
           option.value !== '' && arr.findIndex((o) => o.value === option.value) === index
         ).map((option) => (
-          <SelectItem key={option.value} value={option.value}>
+          <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
             {option.label}
           </SelectItem>
         ))}
       </SelectContent>
     </Select>
+  )
+  if (!label && !hint) return select
+  return (
+    <label className="block space-y-1 text-sm font-medium text-gray-700">
+      {label ? <span>{label}</span> : null}
+      {select}
+      {hint ? <span className="block text-xs font-normal text-gray-500">{hint}</span> : null}
+    </label>
   )
 }
 

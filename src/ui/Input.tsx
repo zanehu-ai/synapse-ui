@@ -1,13 +1,14 @@
-import { forwardRef, type InputHTMLAttributes } from 'react'
+import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react'
 import { cn } from '../utils/cn'
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string
+  label?: ReactNode
+  hint?: ReactNode
   error?: string
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, id, ...props }, ref) => {
+  ({ className, label, hint, error, id, ...props }, ref) => {
     return (
       <div className="space-y-1">
         {label && (
@@ -25,6 +26,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           {...props}
         />
+        {hint && <p className="text-xs text-gray-500">{hint}</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
     )
