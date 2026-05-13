@@ -16,14 +16,14 @@ import { Pagination } from './Pagination'
  * New pages can use TanStack ColumnDef directly via `columnDefs` prop.
  */
 export interface Column<T> {
-  key: string
+  key: string | keyof T
   title: ReactNode
   render?: (value: unknown, record: T, index: number) => ReactNode
-  width?: number
+  width?: number | string
   sortable?: boolean
 }
 
-interface DataTableProps<T> {
+export interface DataTableProps<T> {
   /** Legacy column definitions (818-gaming format) */
   columns?: Column<T>[]
   /** TanStack Table column definitions (new format) */
@@ -59,7 +59,7 @@ function getField(record: unknown, key: string): unknown {
  */
 function toColumnDef<T>(col: Column<T>): ColumnDef<T, unknown> {
   return {
-    id: col.key,
+    id: String(col.key),
     header: ({ column }) => {
       if (col.sortable) {
         return (
@@ -76,11 +76,11 @@ function toColumnDef<T>(col: Column<T>): ColumnDef<T, unknown> {
       }
       return col.title
     },
-    accessorFn: (row) => getField(row, col.key),
+    accessorFn: (row) => getField(row, String(col.key)),
     cell: col.render
       ? ({ row, getValue }) => col.render!(getValue(), row.original, row.index)
       : ({ getValue }) => getValue() as ReactNode,
-    size: col.width,
+    size: typeof col.width === 'number' ? col.width : undefined,
     enableSorting: col.sortable ?? false,
   }
 }

@@ -18,8 +18,8 @@ export { useT } from './i18n/useT'
 export type { Locale, TranslationDict, Translations } from './i18n/types'
 
 // UI Components
-export { Button, type ButtonProps } from './ui/Button'
-export { Badge, type BadgeProps } from './ui/Badge'
+export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './ui/Button'
+export { Badge, type BadgeProps, type BadgeVariant } from './ui/Badge'
 export { Alert, type AlertProps, type AlertVariant } from './ui/Alert'
 export { Card, CardHeader, CardTitle, CardContent } from './ui/Card'
 export { Input, type InputProps } from './ui/Input'
@@ -62,7 +62,7 @@ export { Avatar, AvatarFallback, AvatarImage } from './ui/Avatar'
 
 // Components
 export { ErrorBoundary } from './components/ErrorBoundary'
-export { DataTable, type Column } from './components/DataTable'
+export { DataTable, type Column, type DataTableProps } from './components/DataTable'
 export { Pagination } from './components/Pagination'
 export { Layout, type LayoutProps } from './components/Layout'
 export { PageHeader, type PageHeaderProps } from './components/PageHeader'

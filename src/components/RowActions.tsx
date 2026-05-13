@@ -2,6 +2,7 @@ import { Button, type ButtonProps } from '../ui/Button'
 import { ConfirmButton } from './ConfirmButton'
 
 export interface RowAction {
+  key?: string
   label: string
   onAction: () => void | Promise<void>
   variant?: ButtonProps['variant']
@@ -27,7 +28,7 @@ export function RowActions({ actions, size = 'sm' }: RowActionsProps) {
       {actions.map((action) =>
         action.confirm ? (
           <ConfirmButton
-            key={action.label}
+            key={action.key ?? action.label}
             label={action.label}
             size={action.size ?? size}
             variant={action.variant ?? 'outline'}
@@ -41,7 +42,7 @@ export function RowActions({ actions, size = 'sm' }: RowActionsProps) {
           />
         ) : (
           <Button
-            key={action.label}
+            key={action.key ?? action.label}
             size={action.size ?? size}
             variant={action.variant ?? 'outline'}
             disabled={action.disabled}
