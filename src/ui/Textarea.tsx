@@ -9,17 +9,19 @@ export interface TextareaProps extends React.ComponentProps<'textarea'> {
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, label, hint, error, id, value, ...props }, ref) => {
+    const generatedId = React.useId()
+    const textareaId = id ?? generatedId
     return (
       <div className="space-y-1">
         {label && (
-          <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+          <label htmlFor={textareaId} className="block text-sm font-medium text-gray-700">
             {label}
           </label>
         )}
         <textarea
           ref={ref}
           data-slot="textarea"
-          id={id}
+          id={textareaId}
           value={value ?? undefined}
           className={cn(
             'min-h-16 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50',
