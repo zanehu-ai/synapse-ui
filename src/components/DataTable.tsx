@@ -1,4 +1,4 @@
-import { type Key, type ReactNode, useMemo } from 'react'
+import { type CSSProperties, type Key, type ReactNode, useMemo } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -19,7 +19,7 @@ export interface Column<T> {
   key: string | keyof T
   title: ReactNode
   render?: (value: unknown, record: T, index: number) => ReactNode
-  width?: number
+  width?: number | string
   sortable?: boolean
 }
 
@@ -81,9 +81,19 @@ function toColumnDef<T>(col: Column<T>): ColumnDef<T, unknown> {
     cell: col.render
       ? ({ row, getValue }) => col.render!(getValue(), row.original, row.index)
       : ({ getValue }) => getValue() as ReactNode,
-    size: col.width,
+    size: typeof col.width === 'number' ? col.width : undefined,
+    meta: typeof col.width === 'string' ? { width: col.width } : undefined,
     enableSorting: col.sortable ?? false,
   }
+}
+
+function getColumnWidthStyle<T>(columnDef: ColumnDef<T, unknown>): CSSProperties | undefined {
+  const metaWidth =
+    columnDef.meta && 'width' in columnDef.meta
+      ? (columnDef.meta as { width?: number | string }).width
+      : undefined
+  const width = metaWidth ?? columnDef.size
+  return width ? { width } : undefined
 }
 
 export function DataTable<T>({
@@ -129,7 +139,7 @@ export function DataTable<T>({
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} style={header.column.getSize() ? { width: header.column.getSize() } : undefined}>
+                <TableHead key={header.id} style={getColumnWidthStyle(header.column.columnDef)}>
                   {header.isPlaceholder
                     ? null
                     : flexRender(header.column.columnDef.header, header.getContext())}
