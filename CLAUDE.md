@@ -29,7 +29,6 @@ src/
 ## 常用命令
 ```bash
 make typecheck    # TypeScript 类型检查
-make lint         # ESLint 检查
 make clean        # 清理产物
 ```
 

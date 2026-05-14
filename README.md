@@ -88,8 +88,9 @@ import { createClient } from '@zanehu-ai/synapse-ui'
 | react-dom | ^18.3 \|\| ^19.0 | 是 |
 | axios | ^1.7 | 是 |
 | zustand | ^5.0 | 是 |
-| lucide-react | >=0.300 | 可选 |
-| @tanstack/react-table | ^8.20 | 可选 |
+| lucide-react | >=0.300 | 是 |
+| @tanstack/react-query | ^5.0 | 是 |
+| @tanstack/react-table | ^8.20 | 是 |
 
 ## 发布
 

@@ -173,6 +173,19 @@ export interface SelectFieldProps {
   hint?: React.ReactNode
 }
 
+const visuallyHiddenSelectStyle: React.CSSProperties = {
+  border: 0,
+  clip: 'rect(0 0 0 0)',
+  clipPath: 'inset(50%)',
+  height: 1,
+  margin: -1,
+  overflow: 'hidden',
+  padding: 0,
+  position: 'absolute',
+  whiteSpace: 'nowrap',
+  width: 1,
+}
+
 function SelectField({
   'aria-label': ariaLabel,
   id,
@@ -273,7 +286,24 @@ function SelectField({
 
   const select = (
     <div className={wrapperClass} ref={rootRef}>
-      {name && !disabled ? <input name={name} required={required} type="hidden" value={value} /> : null}
+      {name && !disabled ? (
+        <select
+          aria-hidden="true"
+          name={name}
+          onChange={(event) => selectValue(event.currentTarget.value)}
+          required={required}
+          style={visuallyHiddenSelectStyle}
+          tabIndex={-1}
+          value={value}
+        >
+          <option value="" />
+          {filteredOptions.map((option) => (
+            <option disabled={option.disabled} key={option.value} value={option.value}>
+              {typeof option.label === 'string' ? option.label : option.value}
+            </option>
+          ))}
+        </select>
+      ) : null}
       <button
         aria-controls={listboxId}
         aria-disabled={disabled || undefined}
