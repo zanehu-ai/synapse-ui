@@ -91,6 +91,7 @@ export function SidebarNavigation({
           {items.map((item) => (
             <SidebarNavigationLink
               activePath={activePath}
+              depth={0}
               item={item}
               key={item.to}
               LinkComponent={LinkComponent}
@@ -109,29 +110,35 @@ export function SidebarNavigation({
 
 function SidebarNavigationLink({
   activePath,
+  depth,
   item,
   LinkComponent,
 }: {
   activePath: string
+  depth: number
   item: SidebarNavigationItem
   LinkComponent: NavigationLinkComponent
 }) {
-  const active =
-    isNavigationTargetActive(activePath, item) ||
-    Boolean(item.children?.some((child) => isNavigationTargetActive(activePath, child)))
+  const active = isNavigationBranchActive(activePath, item)
   const selfActive = isNavigationTargetActive(activePath, item)
+  const root = depth === 0
   return (
     <div>
       <LinkComponent
         aria-current={selfActive ? 'page' : undefined}
         className={cn(
-          'flex min-h-9 items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
+          'flex items-center rounded-md font-medium transition-colors',
+          root
+            ? 'min-h-9 px-3 py-2 text-sm'
+            : 'min-h-8 px-3 py-1.5 text-xs',
           navFocusClass,
           selfActive
             ? 'bg-gray-950 text-white shadow-sm'
             : active
               ? 'bg-gray-100 text-gray-950'
-              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-950',
+              : root
+                ? 'text-gray-600 hover:bg-gray-50 hover:text-gray-950'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-950',
         )}
         to={item.to}
       >
@@ -139,28 +146,25 @@ function SidebarNavigationLink({
       </LinkComponent>
       {item.children?.length ? (
         <div className="ml-3 mt-1 space-y-1 border-l border-gray-200 pl-2">
-          {item.children.map((child) => {
-            const childActive = isNavigationTargetActive(activePath, child)
-            return (
-              <LinkComponent
-                aria-current={childActive ? 'page' : undefined}
-                className={cn(
-                  'flex min-h-8 items-center rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-                  navFocusClass,
-                  childActive
-                    ? 'bg-gray-950 text-white shadow-sm'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-950',
-                )}
-                key={child.to}
-                to={child.to}
-              >
-                {child.label}
-              </LinkComponent>
-            )
-          })}
+          {item.children.map((child) => (
+            <SidebarNavigationLink
+              activePath={activePath}
+              depth={depth + 1}
+              item={child}
+              key={child.to}
+              LinkComponent={LinkComponent}
+            />
+          ))}
         </div>
       ) : null}
     </div>
+  )
+}
+
+function isNavigationBranchActive(activePath: string, item: SidebarNavigationItem): boolean {
+  return (
+    isNavigationTargetActive(activePath, item) ||
+    Boolean(item.children?.some((child) => isNavigationBranchActive(activePath, child)))
   )
 }
 
