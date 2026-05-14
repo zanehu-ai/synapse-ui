@@ -190,6 +190,7 @@ function SelectField({
   const generatedId = React.useId()
   const triggerId = id ?? `${generatedId}-select`
   const labelId = `${triggerId}-label`
+  const hintId = hint ? `${triggerId}-hint` : undefined
   const listboxId = `${triggerId}-listbox`
   const [open, setOpen] = React.useState(false)
   const rootRef = React.useRef<HTMLDivElement>(null)
@@ -201,12 +202,9 @@ function SelectField({
       ),
     [options],
   )
-  const selectedIndex = Math.max(
-    0,
-    filteredOptions.findIndex((option) => option.value === value),
-  )
-  const selectedOption = filteredOptions[selectedIndex]
-  const selectedLabel = selectedOption?.label ?? value
+  const selectedIndex = filteredOptions.findIndex((option) => option.value === value)
+  const selectedOption = selectedIndex >= 0 ? filteredOptions[selectedIndex] : undefined
+  const selectedLabel = selectedOption?.label
   const wrapperClass = React.useMemo(
     () =>
       cn(
@@ -275,11 +273,12 @@ function SelectField({
 
   const select = (
     <div className={wrapperClass} ref={rootRef}>
-      {name ? <input name={name} required={required} type="hidden" value={value} /> : null}
+      {name && !disabled ? <input name={name} required={required} type="hidden" value={value} /> : null}
       <button
         aria-controls={listboxId}
         aria-disabled={disabled || undefined}
         aria-expanded={open}
+        aria-describedby={hintId}
         aria-haspopup="listbox"
         aria-label={ariaLabel}
         aria-labelledby={!ariaLabel && label ? labelId : undefined}
@@ -338,7 +337,7 @@ function SelectField({
     <div className="block space-y-1 text-sm font-medium text-gray-700">
       {label ? <span id={labelId}>{label}</span> : null}
       {select}
-      {hint ? <span className="block text-xs font-normal text-gray-500">{hint}</span> : null}
+      {hint ? <span id={hintId} className="block text-xs font-normal text-gray-500">{hint}</span> : null}
     </div>
   )
 }

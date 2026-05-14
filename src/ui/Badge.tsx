@@ -3,7 +3,7 @@ import { cn } from '../utils/cn'
 
 const variants = {
   default: 'bg-blue-100 text-blue-800',
-  neutral: 'bg-gray-100 text-gray-800',
+  neutral: 'bg-slate-100 text-slate-800',
   success: 'bg-green-100 text-green-800',
   warning: 'bg-yellow-100 text-yellow-800',
   danger: 'bg-red-100 text-red-800',

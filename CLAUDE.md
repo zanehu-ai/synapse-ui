@@ -41,7 +41,7 @@ git push origin main --tags
 ```
 
 ## 消费方
-- 818-cargo admin/portal（`npm install @techfitmaster/synapse-ui`）
+- 818-cargo admin/portal（`npm install @zanehu-ai/synapse-ui`）
 - 未来所有前端产品
 
 ## 规范

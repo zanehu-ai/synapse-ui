@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { MessageInput } from './MessageInput'
@@ -65,6 +65,10 @@ export function ConversationView({
 }: ConversationViewProps) {
   const [localLang, setLocalLang] = useState<ChatLang>(language)
 
+  useEffect(() => {
+    setLocalLang(language)
+  }, [language])
+
   const messagesQuery = useQuery({
     queryKey: ['chat', 'messages', tenantId, conversationId, localLang],
     queryFn: () =>
@@ -128,7 +132,7 @@ export function ConversationView({
       </div>
 
       <MessageList
-        messages={messagesQuery.data ?? (EMPTY_MESSAGES as ChatMessage[])}
+        messages={messagesQuery.data ?? EMPTY_MESSAGES}
         language={localLang}
         loading={messagesQuery.isLoading}
         typing={typing ?? null}

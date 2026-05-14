@@ -23,27 +23,11 @@ export function TypingIndicator({ who, language = 'ru', className }: TypingIndic
             : 'bg-slate-100',
         )}
       >
-        <span className="chat-typing-dot" />
-        <span className="chat-typing-dot chat-typing-dot--2" />
-        <span className="chat-typing-dot chat-typing-dot--3" />
+        <span className="size-1.5 animate-bounce rounded-full bg-slate-500 [animation-delay:0ms]" />
+        <span className="size-1.5 animate-bounce rounded-full bg-slate-500 [animation-delay:150ms]" />
+        <span className="size-1.5 animate-bounce rounded-full bg-slate-500 [animation-delay:300ms]" />
       </div>
       <span className="text-xs text-slate-500">{label}</span>
-      <style>{`
-        .chat-typing-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 9999px;
-          background-color: rgb(100, 116, 139);
-          display: inline-block;
-          animation: chat-typing-bounce 1.2s infinite ease-in-out both;
-        }
-        .chat-typing-dot--2 { animation-delay: 0.15s; }
-        .chat-typing-dot--3 { animation-delay: 0.3s; }
-        @keyframes chat-typing-bounce {
-          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-          40% { transform: translateY(-4px); opacity: 1; }
-        }
-      `}</style>
     </div>
   )
 }

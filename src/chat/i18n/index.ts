@@ -11,9 +11,17 @@ export const chatI18n = { en, ru, zh } as const
 
 export type ChatDictionary = typeof en
 
+export function normalizeChatLang(language: ChatLang | string): ChatLang {
+  const normalized = language.toLowerCase().split(/[-_]/)[0]
+  if (normalized === 'zh') return 'zh'
+  if (normalized === 'en') return 'en'
+  return 'ru'
+}
+
 export function pickChatDictionary(language: ChatLang | string): ChatDictionary {
-  if (language === 'zh') return zh as ChatDictionary
-  if (language === 'en') return en as ChatDictionary
+  const normalized = normalizeChatLang(language)
+  if (normalized === 'zh') return zh as ChatDictionary
+  if (normalized === 'en') return en as ChatDictionary
   return ru as ChatDictionary
 }
 

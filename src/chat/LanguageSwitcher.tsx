@@ -1,4 +1,4 @@
-import { chatT, type ChatLang } from './i18n'
+import { chatI18n, chatT, type ChatLang } from './i18n'
 import { cn } from './utils'
 import { SelectField } from '../ui/Select'
 
@@ -8,7 +8,7 @@ export interface LanguageSwitcherProps {
   className?: string
 }
 
-const LANGS: ChatLang[] = ['ru', 'en', 'zh']
+const LANGS = Object.keys(chatI18n) as ChatLang[]
 
 export function LanguageSwitcher({ value, onChange, className }: LanguageSwitcherProps) {
   return (

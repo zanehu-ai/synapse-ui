@@ -21,17 +21,21 @@ export function MessageInput({
 }: MessageInputProps) {
   const [draft, setDraft] = useState('')
 
-  function flush() {
+  async function flush() {
     const trimmed = draft.trim()
     if (!trimmed) return
-    void onSend(trimmed)
-    setDraft('')
+    try {
+      await onSend(trimmed)
+      setDraft('')
+    } catch (error) {
+      console.error('Failed to send chat message', error)
+    }
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
-      flush()
+      void flush()
     }
   }
 
@@ -62,7 +66,7 @@ export function MessageInput({
         type="button"
         className="h-10 px-4"
         disabled={isDisabled || !draft.trim()}
-        onClick={flush}
+        onClick={() => void flush()}
       >
         {chatT(language, 'input.send')}
       </Button>

@@ -25,7 +25,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <SimpleDialog open={open} title={title} onClose={onCancel}>
-      {description ? <p className="text-sm text-gray-600">{description}</p> : null}
+      {description ? <div className="text-sm text-gray-600">{description}</div> : null}
       <div className="mt-5 flex justify-end gap-2">
         <Button variant="outline" onClick={onCancel}>
           {cancelLabel}

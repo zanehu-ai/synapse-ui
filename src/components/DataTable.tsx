@@ -19,7 +19,7 @@ export interface Column<T> {
   key: string | keyof T
   title: ReactNode
   render?: (value: unknown, record: T, index: number) => ReactNode
-  width?: number | string
+  width?: number
   sortable?: boolean
 }
 
@@ -81,7 +81,7 @@ function toColumnDef<T>(col: Column<T>): ColumnDef<T, unknown> {
     cell: col.render
       ? ({ row, getValue }) => col.render!(getValue(), row.original, row.index)
       : ({ getValue }) => getValue() as ReactNode,
-    size: typeof col.width === 'number' ? col.width : undefined,
+    size: col.width,
     enableSorting: col.sortable ?? false,
   }
 }

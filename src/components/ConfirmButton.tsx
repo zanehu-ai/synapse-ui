@@ -33,6 +33,7 @@ export function ConfirmButton({
   const [busy, setBusy] = useState(false)
 
   const handleConfirm = async () => {
+    if (busy) return
     setBusy(true)
     try {
       await onConfirm()
@@ -62,7 +63,7 @@ export function ConfirmButton({
         cancelLabel={cancelLabel}
         confirmLabel={busy ? 'Working...' : confirmLabel}
         confirmVariant={confirmVariant}
-        onCancel={() => setOpen(false)}
+        onCancel={() => { if (!busy) setOpen(false) }}
         onConfirm={handleConfirm}
       />
     </>

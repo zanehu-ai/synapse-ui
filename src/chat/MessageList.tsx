@@ -6,7 +6,7 @@ import type { ChatMessage } from './types'
 import { cn } from './utils'
 
 export interface MessageListProps {
-  messages: ChatMessage[]
+  messages: readonly ChatMessage[]
   language?: ChatLang | string
   loading?: boolean
   typing?: 'ai' | 'agent' | null

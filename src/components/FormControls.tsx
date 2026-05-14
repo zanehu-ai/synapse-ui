@@ -4,6 +4,7 @@ import {
   type ReactNode,
 } from 'react'
 import { Button } from '../ui/Button'
+import { Checkbox } from '../ui/Checkbox'
 import { cn } from '../utils/cn'
 
 export interface CheckboxFieldProps {
@@ -31,22 +32,12 @@ export function CheckboxField({
         className,
       )}
     >
-      <input
+      <Checkbox
         checked={checked}
-        className="peer sr-only"
+        className="mt-0.5 border-gray-300 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white"
         disabled={disabled}
-        onChange={(event) => onCheckedChange(event.currentTarget.checked)}
-        type="checkbox"
+        onCheckedChange={(next) => onCheckedChange(next === true)}
       />
-      <span
-        aria-hidden="true"
-        className={cn(
-          'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500/20',
-          checked ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white',
-        )}
-      >
-        {checked ? <span className="h-2 w-1 rotate-45 border-b-2 border-r-2 border-white" /> : null}
-      </span>
       <span>
         <span className="font-medium">{label}</span>
         {hint ? <span className="mt-1 block text-xs font-normal text-gray-500">{hint}</span> : null}
