@@ -1,0 +1,20 @@
+// @zanehu-ai/synapse-ui/chat — embeddable chat widget components for the V1
+// AI customer service web widget. Pure presentational shell; routing,
+// §8.1 hard-rule, and AI invocation logic stay backend-side per ADR-010.
+export { ConversationView } from './ConversationView'
+export type { ConversationViewProps, ConversationFetcher } from './ConversationView'
+export { MessageBubble } from './MessageBubble'
+export type { MessageBubbleProps } from './MessageBubble'
+export { MessageList } from './MessageList'
+export type { MessageListProps } from './MessageList'
+export { MessageInput } from './MessageInput'
+export type { MessageInputProps } from './MessageInput'
+export { TransferToHumanButton } from './TransferToHumanButton'
+export type { TransferToHumanButtonProps } from './TransferToHumanButton'
+export { TypingIndicator } from './TypingIndicator'
+export type { TypingIndicatorProps } from './TypingIndicator'
+export { LanguageSwitcher } from './LanguageSwitcher'
+export type { LanguageSwitcherProps } from './LanguageSwitcher'
+export { chatI18n, chatT, pickChatDictionary } from './i18n'
+export type { ChatLang, ChatDictionary } from './i18n'
+export type { ChatMessage, ChatMessageRole, ChatLanguage, ChatConversation } from './types'

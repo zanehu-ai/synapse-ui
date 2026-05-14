@@ -1,0 +1,31 @@
+{
+  "input": {
+    "placeholder": "请输入消息...",
+    "send": "发送",
+    "disabled-closed": "对话已关闭。"
+  },
+  "transfer": {
+    "label": "找人工",
+    "confirm": "确认转人工客服？"
+  },
+  "typing": {
+    "ai": "AI 正在输入...",
+    "agent": "客服正在输入..."
+  },
+  "language-switcher": {
+    "label": "语言",
+    "ru": "Русский",
+    "en": "English",
+    "zh": "中文"
+  },
+  "messages": {
+    "empty": "暂无消息，发送第一条开始对话。",
+    "loading": "对话加载中..."
+  },
+  "roles": {
+    "user": "您",
+    "ai": "AI 客服",
+    "agent": "人工客服",
+    "system": "系统"
+  }
+}

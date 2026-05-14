@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
 import * as TabsPrimitive from '@radix-ui/react-tabs'
 import { cn } from '../utils/cn'
 
@@ -22,7 +22,17 @@ function Tabs({
   )
 }
 
-const tabsListVariants = cva(
+type TabsListVariant = 'default' | 'line'
+type TabsListVariantProps = {
+  variant?: TabsListVariant | null
+}
+type TabsListVariantClassProps =
+  | { class?: string; className?: never }
+  | { class?: never; className?: string }
+  | { class?: never; className?: never }
+type TabsListVariantsProps = TabsListVariantProps & TabsListVariantClassProps
+
+const tabsListVariants: (props?: TabsListVariantsProps) => string = cva(
   "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-muted-foreground group-data-[orientation=horizontal]/tabs:h-9 group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col data-[variant=line]:rounded-none",
   {
     variants: {
@@ -42,7 +52,7 @@ function TabsList({
   variant = 'default',
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List> &
-  VariantProps<typeof tabsListVariants>) {
+  TabsListVariantProps) {
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
@@ -86,3 +96,4 @@ function TabsContent({
 }
 
 export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants }
+export type { TabsListVariant, TabsListVariantProps, TabsListVariantsProps }

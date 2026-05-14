@@ -4,6 +4,8 @@ import { cn } from '../utils/cn'
 
 const variants = {
   default: 'bg-blue-600 text-white hover:bg-blue-700',
+  primary: 'bg-blue-600 text-white hover:bg-blue-700',
+  secondary: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
   destructive: 'bg-red-600 text-white hover:bg-red-700',
   outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
   ghost: 'text-gray-700 hover:bg-gray-100',
@@ -23,6 +25,9 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean
   children?: ReactNode
 }
+
+export type ButtonVariant = keyof typeof variants
+export type ButtonSize = keyof typeof sizes
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'default', size = 'md', loading, asChild, disabled, children, ...props }, ref) => {

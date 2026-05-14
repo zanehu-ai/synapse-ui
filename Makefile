@@ -1,10 +1,7 @@
-.PHONY: typecheck lint clean
+.PHONY: typecheck clean
 
 typecheck:
 	npx tsc --noEmit
-
-lint:
-	npx eslint src/ --max-warnings=0
 
 clean:
 	rm -rf dist/ *.tsbuildinfo

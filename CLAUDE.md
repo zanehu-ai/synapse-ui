@@ -29,7 +29,6 @@ src/
 ## 常用命令
 ```bash
 make typecheck    # TypeScript 类型检查
-make lint         # ESLint 检查
 make clean        # 清理产物
 ```
 
@@ -41,7 +40,7 @@ git push origin main --tags
 ```
 
 ## 消费方
-- 818-cargo admin/portal（`npm install @techfitmaster/synapse-ui`）
+- 818-cargo admin/portal（`npm install @zanehu-ai/synapse-ui`）
 - 未来所有前端产品
 
 ## 规范

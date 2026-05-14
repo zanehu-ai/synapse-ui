@@ -1,4 +1,4 @@
-# @techfitmaster/synapse-ui
+# @zanehu-ai/synapse-ui
 
 跨产品前端共享组件库。为 admin、portal 等前端项目提供统一的 UI 组件和基础设施。
 
@@ -6,18 +6,18 @@
 
 ```bash
 # 配置 GitHub Packages npm registry
-echo "@techfitmaster:registry=https://npm.pkg.github.com" >> .npmrc
+echo "@zanehu-ai:registry=https://npm.pkg.github.com" >> .npmrc
 
 # 安装
-npm install @techfitmaster/synapse-ui
+npm install @zanehu-ai/synapse-ui
 ```
 
 ## 使用
 
 ```tsx
-import { Button, Badge, Card, cn } from '@techfitmaster/synapse-ui'
-import { I18nProvider, useT } from '@techfitmaster/synapse-ui'
-import { createClient } from '@techfitmaster/synapse-ui'
+import { Button, Badge, Card, cn } from '@zanehu-ai/synapse-ui'
+import { I18nProvider, useT } from '@zanehu-ai/synapse-ui'
+import { createClient } from '@zanehu-ai/synapse-ui'
 ```
 
 ## 技术栈
@@ -36,8 +36,9 @@ import { createClient } from '@techfitmaster/synapse-ui'
 |------|------|
 | Button | 按钮（default/destructive/outline/ghost + loading + asChild） |
 | Badge | 徽章（default/success/warning/danger/secondary） |
+| Alert | 页面提示（neutral/success/warning/danger/info） |
 | Card | 卡片（Card/CardHeader/CardTitle/CardContent） |
-| Input | 输入框（含 error 提示） |
+| Input | 输入框（含 label/hint/error 提示） |
 | Dialog | 对话框 |
 | Select | 下拉选择 |
 | Tabs | 标签页（default/line 变体，支持水平/垂直方向） |
@@ -51,7 +52,7 @@ import { createClient } from '@techfitmaster/synapse-ui'
 | ScrollArea | 滚动区域 |
 | Separator | 分隔线 |
 | Table | 表格 |
-| Textarea | 多行文本 |
+| Textarea | 多行文本（含 label/hint/error 提示） |
 | AspectRatio | 宽高比容器 |
 | Toolbar | 工具栏 |
 
@@ -71,6 +72,13 @@ import { createClient } from '@techfitmaster/synapse-ui'
 | `DataTable` | TanStack Table 封装 + legacy `Column<T>` adapter + 分页 |
 | `ErrorBoundary` | React 错误边界 |
 | `Pagination` | 分页组件 |
+| `PageHeader` | 页面标题、说明和操作区 |
+| `FilterBar` | 筛选条容器 |
+| `EmptyState` | 空状态 |
+| `StatusBadge` | 状态徽章 |
+| `ConfirmDialog` | 通用确认弹窗 |
+| `ConfirmButton` | 按钮 + 确认弹窗组合 |
+| `RowActions` | 表格行操作按钮组 |
 
 ## Peer Dependencies
 
@@ -80,8 +88,9 @@ import { createClient } from '@techfitmaster/synapse-ui'
 | react-dom | ^18.3 \|\| ^19.0 | 是 |
 | axios | ^1.7 | 是 |
 | zustand | ^5.0 | 是 |
-| lucide-react | >=0.300 | 可选 |
-| @tanstack/react-table | ^8.20 | 可选 |
+| lucide-react | >=0.300 | 是 |
+| @tanstack/react-query | ^5.0 | 是 |
+| @tanstack/react-table | ^8.20 | 是 |
 
 ## 发布
 

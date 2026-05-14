@@ -121,7 +121,7 @@ function SimpleDialog({
 }: {
   open: boolean
   onClose: () => void
-  title: string
+  title: React.ReactNode
   children: React.ReactNode
   className?: string
 }) {
