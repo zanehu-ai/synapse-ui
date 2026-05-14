@@ -78,7 +78,17 @@ export const domainQueryKeys = {
       compact(['console', 'customer-service', 'tickets', status]),
     customerServiceAgents: () => ['console', 'customer-service', 'agents'] as const,
     knowledgeDocs: () => ['console', 'knowledge', 'docs'] as const,
+    knowledgeDoc: (id: QueryKeyPart) => compact(['console', 'knowledge', 'doc', id]),
     knowledgeVersions: (title: QueryKeyPart) => compact(['console', 'knowledge', 'versions', title]),
     knowledge: () => ['console', 'knowledge'] as const,
+    customerServiceStats: () => ['console', 'customer-service', 'stats'] as const,
+    customerServiceTicketDetail: (id: QueryKeyPart) =>
+      compact(['console', 'customer-service', 'ticket', id]),
+    customerServiceTicketConversations: (id: QueryKeyPart) =>
+      compact(['console', 'customer-service', 'ticket', id, 'conversations']),
+    customerServiceConversationMessages: (id: QueryKeyPart) =>
+      compact(['console', 'customer-service', 'conversation', id, 'messages']),
+    customerServiceCoPilotDraft: (ticketId: QueryKeyPart) =>
+      compact(['console', 'customer-service', 'co-pilot', ticketId]),
   },
 } as const
