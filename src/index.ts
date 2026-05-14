@@ -127,7 +127,6 @@ export type {
 export { usePagination } from './hooks/usePagination'
 
 // OpcOrbit shared API/domain primitives
-export { useTenant as useOpcOrbitTenant } from './opcorbit/useTenant'
 export * from './opcorbit/control'
 export type { Principal } from './opcorbit/types/principal'
 export type { Tenant } from './opcorbit/types/tenant'
