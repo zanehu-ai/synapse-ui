@@ -3,8 +3,9 @@ import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
 export interface CreateClientOptions {
   baseURL: string
   timeout?: number
-  getToken: () => string | null
-  onUnauthorized: () => void
+  withCredentials?: boolean
+  getToken?: () => string | null
+  onUnauthorized?: () => void
   unauthorizedCodes?: number[]
 }
 
@@ -17,10 +18,16 @@ export interface TypedClient {
   patch: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) => Promise<T>
 }
 
-export function createClient(options: CreateClientOptions): TypedClient {
+export function createClient(options: CreateClientOptions & {
+  getToken: () => string | null
+  onUnauthorized: () => void
+}): TypedClient
+export function createClient(options: CreateClientOptions): AxiosInstance
+export function createClient(options: CreateClientOptions): AxiosInstance | TypedClient {
   const {
     baseURL,
     timeout = 30000,
+    withCredentials,
     getToken,
     onUnauthorized,
     unauthorizedCodes = [401, 1002],
@@ -29,8 +36,13 @@ export function createClient(options: CreateClientOptions): TypedClient {
   const instance = axios.create({
     baseURL,
     timeout,
+    withCredentials,
     headers: { 'Content-Type': 'application/json' },
   })
+
+  if (!getToken || !onUnauthorized) {
+    return instance
+  }
 
   instance.interceptors.request.use((config) => {
     const token = getToken()
