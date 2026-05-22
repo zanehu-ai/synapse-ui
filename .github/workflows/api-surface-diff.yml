@@ -65,19 +65,22 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           set +e
-          # Restore working tree on step exit so subsequent steps (and
-          # subsequent runs on self-hosted runners) see HEAD, not the
-          # base-ref tree we temporarily check out.
-          #
+          # Restore working tree on step exit. Capture the stash SHA so the
+          # trap pops exactly OUR stash, not whatever happens to be at the
+          # top of the stash list (which on self-hosted runners could be
+          # a stale stash from a previous failed run — R7 reviewer caught).
+          STASH_SHA=$(git stash create --include-untracked 2>/dev/null || true)
+          if [ -n "$STASH_SHA" ]; then
+            git stash store -q -m "api-surface-diff-step-stash" "$STASH_SHA"
+          fi
           # Use `git reset --hard HEAD` (not `git checkout -- .`) — after
           # `git checkout origin/$BASE_REF -- .`, the index holds BASE-ref
           # content, so `checkout -- .` would restore from-index = base,
           # leaving the trap as a no-op. Reset --hard rewinds index AND
           # worktree to HEAD's commit. Then `stash pop` re-applies the
-          # HEAD-side dirty changes the trap saved at step start.
-          trap '(git reset --hard HEAD 2>/dev/null; git stash pop --quiet 2>/dev/null) || true' EXIT
-          # Save tsconfig and source state for HEAD; checkout base ref's source
-          git stash --include-untracked --quiet || true
+          # HEAD-side dirty changes (only if we created one).
+          trap 'git reset --hard HEAD 2>/dev/null; if [ -n "$STASH_SHA" ]; then git stash pop --quiet 2>/dev/null || true; fi' EXIT
+          # Now check out base ref's source for tsc to read
           git checkout "origin/$BASE_REF" -- . 2>&1 | head -5
           rm -rf node_modules
           npm ci 2>&1 | tail -3
