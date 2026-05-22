@@ -67,9 +67,15 @@ jobs:
           set +e
           # Restore working tree on step exit so subsequent steps (and
           # subsequent runs on self-hosted runners) see HEAD, not the
-          # base-ref tree we temporarily check out. R5 reviewer caught
-          # this latent footgun.
-          trap '(git checkout -- . 2>/dev/null; git stash pop --quiet 2>/dev/null) || true' EXIT
+          # base-ref tree we temporarily check out.
+          #
+          # Use `git reset --hard HEAD` (not `git checkout -- .`) — after
+          # `git checkout origin/$BASE_REF -- .`, the index holds BASE-ref
+          # content, so `checkout -- .` would restore from-index = base,
+          # leaving the trap as a no-op. Reset --hard rewinds index AND
+          # worktree to HEAD's commit. Then `stash pop` re-applies the
+          # HEAD-side dirty changes the trap saved at step start.
+          trap '(git reset --hard HEAD 2>/dev/null; git stash pop --quiet 2>/dev/null) || true' EXIT
           # Save tsconfig and source state for HEAD; checkout base ref's source
           git stash --include-untracked --quiet || true
           git checkout "origin/$BASE_REF" -- . 2>&1 | head -5
