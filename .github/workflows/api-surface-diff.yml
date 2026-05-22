@@ -65,6 +65,11 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           set +e
+          # Restore working tree on step exit so subsequent steps (and
+          # subsequent runs on self-hosted runners) see HEAD, not the
+          # base-ref tree we temporarily check out. R5 reviewer caught
+          # this latent footgun.
+          trap '(git checkout -- . 2>/dev/null; git stash pop --quiet 2>/dev/null) || true' EXIT
           # Save tsconfig and source state for HEAD; checkout base ref's source
           git stash --include-untracked --quiet || true
           git checkout "origin/$BASE_REF" -- . 2>&1 | head -5
@@ -88,19 +93,45 @@ jobs:
           echo "base_rc=$RC" >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Compute diff
+      - name: Compute diff + classify state
         id: diff
-        if: steps.head_dts.outputs.head_generated == 'true' && steps.base_dts.outputs.base_generated == 'true'
+        env:
+          HEAD_OK: ${{ steps.head_dts.outputs.head_generated }}
+          BASE_OK: ${{ steps.base_dts.outputs.base_generated }}
         run: |
           set +e
           mkdir -p .reports
-          diff -ruN /tmp/dts-base /tmp/dts-head > .reports/dts-diff.patch
-          DIFF_LINES=$(wc -l < .reports/dts-diff.patch | tr -d ' ')
+
+          # Always run diff when both dirs exist. State classifier in
+          # comment step distinguishes "tsc crash" from "legit consolidation";
+          # the actual patch is the most informative artifact for the
+          # head-shrunk-from-healthy case (which the previous gated version
+          # silently skipped).
+          DIFF_PRODUCED=false
+          DIFF_LINES=0
+          REMOVED=0
+          if [ -d /tmp/dts-base ] && [ -d /tmp/dts-head ]; then
+            diff -ruN /tmp/dts-base /tmp/dts-head > .reports/dts-diff.patch
+            DIFF_PRODUCED=true
+            DIFF_LINES=$(wc -l < .reports/dts-diff.patch | tr -d ' ')
+            REMOVED=$(grep -cE '^-[^-]' .reports/dts-diff.patch | tr -d ' ')
+          fi
+          echo "diff_produced=$DIFF_PRODUCED" >> "$GITHUB_OUTPUT"
           echo "diff_lines=$DIFF_LINES" >> "$GITHUB_OUTPUT"
-          # Quick heuristic: lines beginning with - (removed) inside .d.ts files
-          # are potential breaking changes (removed exports, changed signatures)
-          REMOVED=$(grep -cE '^-[^-]' .reports/dts-diff.patch | tr -d ' ')
           echo "removed_lines=$REMOVED" >> "$GITHUB_OUTPUT"
+
+          # Classify state. Order matters — first match wins.
+          STATE=normal
+          if [ "$HEAD_OK" = "true" ] && [ "$BASE_OK" = "true" ]; then
+            STATE=normal
+          elif [ "$HEAD_OK" = "false" ] && [ "$BASE_OK" = "true" ]; then
+            STATE=head-shrunk-from-healthy
+          elif [ "$HEAD_OK" = "true" ] && [ "$BASE_OK" = "false" ]; then
+            STATE=base-broken
+          else
+            STATE=both-broken
+          fi
+          echo "state=$STATE" >> "$GITHUB_OUTPUT"
           exit 0
 
       - name: Upload report
@@ -119,10 +150,18 @@ jobs:
           BASE_OK: ${{ steps.base_dts.outputs.base_generated }}
           HEAD_RC: ${{ steps.head_dts.outputs.head_rc }}
           BASE_RC: ${{ steps.base_dts.outputs.base_rc }}
+          HEAD_COUNT: ${{ steps.head_dts.outputs.head_file_count }}
+          BASE_COUNT: ${{ steps.base_dts.outputs.base_file_count }}
           DIFF_LINES: ${{ steps.diff.outputs.diff_lines }}
+          DIFF_PRODUCED: ${{ steps.diff.outputs.diff_produced }}
           REMOVED: ${{ steps.diff.outputs.removed_lines }}
+          STATE: ${{ steps.diff.outputs.state }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
+          # set -u so any missing env var (e.g. forgot to add to env: block)
+          # fails loudly during render rather than silently producing
+          # half-empty comment bodies — R5 regression learned the hard way.
+          set -u
           {
             echo "## 🔍 API Surface Diff (.d.ts)"
             echo ""
