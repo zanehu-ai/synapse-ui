@@ -1,0 +1,231 @@
+name: API Surface Diff
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: api-surface-diff-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-diff:
+    name: TypeScript .d.ts diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install deps (HEAD)
+        run: npm ci
+
+      - name: Generate .d.ts for HEAD
+        id: head_dts
+        run: |
+          set +e
+          mkdir -p .reports
+          rm -rf /tmp/dts-head
+          npx tsc --noEmit false --emitDeclarationOnly --declaration --declarationDir /tmp/dts-head -p tsconfig.json 2>&1 | tee .reports/tsc-head.log
+          RC=${PIPESTATUS[0]}
+          # Floor check: tsc may emit nothing if it crashes early but
+          # still creates the output dir. Treat <FLOOR generated files as
+          # "tsc failed silently" so the diff step does not compare two
+          # empty dirs and falsely report "no removed exports — additive".
+          # synapse-ui has 30+ public surface modules; floor at 10 is
+          # generous.
+          FLOOR=10
+          FILE_COUNT=0
+          if [ -d /tmp/dts-head ]; then
+            FILE_COUNT=$(find /tmp/dts-head -name '*.d.ts' -type f 2>/dev/null | wc -l | tr -d ' ')
+          fi
+          if [ "$FILE_COUNT" -ge "$FLOOR" ] && [ "$RC" -eq 0 ]; then
+            echo "head_generated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "head_generated=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::tsc emitted $FILE_COUNT .d.ts (rc=$RC); below FLOOR=$FLOOR"
+          fi
+          echo "head_file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "head_rc=$RC" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Checkout base ref + reinstall + regenerate .d.ts
+        id: base_dts
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set +e
+          # Restore working tree on step exit. Capture the stash SHA so the
+          # trap pops exactly OUR stash, not whatever happens to be at the
+          # top of the stash list (which on self-hosted runners could be
+          # a stale stash from a previous failed run — R7 reviewer caught).
+          STASH_SHA=$(git stash create --include-untracked 2>/dev/null || true)
+          if [ -n "$STASH_SHA" ]; then
+            git stash store -q -m "api-surface-diff-step-stash" "$STASH_SHA"
+          fi
+          # Use `git reset --hard HEAD` (not `git checkout -- .`) — after
+          # `git checkout origin/$BASE_REF -- .`, the index holds BASE-ref
+          # content, so `checkout -- .` would restore from-index = base,
+          # leaving the trap as a no-op. Reset --hard rewinds index AND
+          # worktree to HEAD's commit. Then `stash pop` re-applies the
+          # HEAD-side dirty changes (only if we created one).
+          trap 'git reset --hard HEAD 2>/dev/null; if [ -n "$STASH_SHA" ]; then git stash pop --quiet 2>/dev/null || true; fi' EXIT
+          # Now check out base ref's source for tsc to read
+          git checkout "origin/$BASE_REF" -- . 2>&1 | head -5
+          rm -rf node_modules
+          npm ci 2>&1 | tail -3
+          rm -rf /tmp/dts-base
+          npx tsc --noEmit false --emitDeclarationOnly --declaration --declarationDir /tmp/dts-base -p tsconfig.json 2>&1 | tee .reports/tsc-base.log
+          RC=${PIPESTATUS[0]}
+          FLOOR=10
+          FILE_COUNT=0
+          if [ -d /tmp/dts-base ]; then
+            FILE_COUNT=$(find /tmp/dts-base -name '*.d.ts' -type f 2>/dev/null | wc -l | tr -d ' ')
+          fi
+          if [ "$FILE_COUNT" -ge "$FLOOR" ] && [ "$RC" -eq 0 ]; then
+            echo "base_generated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_generated=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::tsc emitted $FILE_COUNT .d.ts (rc=$RC); below FLOOR=$FLOOR"
+          fi
+          echo "base_file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "base_rc=$RC" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Compute diff + classify state
+        id: diff
+        env:
+          HEAD_OK: ${{ steps.head_dts.outputs.head_generated }}
+          BASE_OK: ${{ steps.base_dts.outputs.base_generated }}
+        run: |
+          set +e
+          mkdir -p .reports
+
+          # Always run diff when both dirs exist. State classifier in
+          # comment step distinguishes "tsc crash" from "legit consolidation";
+          # the actual patch is the most informative artifact for the
+          # head-shrunk-from-healthy case (which the previous gated version
+          # silently skipped).
+          DIFF_PRODUCED=false
+          DIFF_LINES=0
+          REMOVED=0
+          if [ -d /tmp/dts-base ] && [ -d /tmp/dts-head ]; then
+            diff -ruN /tmp/dts-base /tmp/dts-head > .reports/dts-diff.patch
+            DIFF_PRODUCED=true
+            DIFF_LINES=$(wc -l < .reports/dts-diff.patch | tr -d ' ')
+            REMOVED=$(grep -cE '^-[^-]' .reports/dts-diff.patch | tr -d ' ')
+          fi
+          echo "diff_produced=$DIFF_PRODUCED" >> "$GITHUB_OUTPUT"
+          echo "diff_lines=$DIFF_LINES" >> "$GITHUB_OUTPUT"
+          echo "removed_lines=$REMOVED" >> "$GITHUB_OUTPUT"
+
+          # Classify state. Order matters — first match wins.
+          STATE=normal
+          if [ "$HEAD_OK" = "true" ] && [ "$BASE_OK" = "true" ]; then
+            STATE=normal
+          elif [ "$HEAD_OK" = "false" ] && [ "$BASE_OK" = "true" ]; then
+            STATE=head-shrunk-from-healthy
+          elif [ "$HEAD_OK" = "true" ] && [ "$BASE_OK" = "false" ]; then
+            STATE=base-broken
+          else
+            STATE=both-broken
+          fi
+          echo "state=$STATE" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-surface-diff-report
+          path: .reports/
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_OK: ${{ steps.head_dts.outputs.head_generated }}
+          BASE_OK: ${{ steps.base_dts.outputs.base_generated }}
+          HEAD_RC: ${{ steps.head_dts.outputs.head_rc }}
+          BASE_RC: ${{ steps.base_dts.outputs.base_rc }}
+          HEAD_COUNT: ${{ steps.head_dts.outputs.head_file_count }}
+          BASE_COUNT: ${{ steps.base_dts.outputs.base_file_count }}
+          DIFF_LINES: ${{ steps.diff.outputs.diff_lines }}
+          DIFF_PRODUCED: ${{ steps.diff.outputs.diff_produced }}
+          REMOVED: ${{ steps.diff.outputs.removed_lines }}
+          STATE: ${{ steps.diff.outputs.state }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          # set -u so any missing env var (e.g. forgot to add to env: block)
+          # fails loudly during render rather than silently producing
+          # half-empty comment bodies — R5 regression learned the hard way.
+          set -u
+          {
+            echo "## 🔍 API Surface Diff (.d.ts)"
+            echo ""
+            echo "Base ref: \`$BASE_REF\` | HEAD .d.ts files: \`$HEAD_COUNT\` | base .d.ts files: \`$BASE_COUNT\` (tsc floor: 10)"
+            echo ""
+            case "$STATE" in
+              head-shrunk-from-healthy)
+                echo "**🚨 MASSIVE API SURFACE CHANGE DETECTED**"
+                echo ""
+                echo "Base produced \`$BASE_COUNT\` .d.ts files but HEAD only \`$HEAD_COUNT\` (below floor=10)."
+                echo ""
+                echo "Because base built cleanly, tsc itself works; HEAD'\''s shrinkage is one of:"
+                echo "1. **Legitimate consolidation refactor** — many exports merged/removed. Downstream consumers (opcorbit/console, opcorbit/cargo-portal) WILL break and need coordinated upgrade."
+                echo "2. **tsc broken on HEAD** — HEAD introduces a TS compile error that aborts declaration emission. Fix the build first."
+                echo ""
+                echo "Either way, **do not merge without explicit reviewer approval**. Diff is captured below for inspection."
+                if [ "$DIFF_PRODUCED" = "true" ]; then
+                  echo ""
+                  echo "First 120 lines of diff:"
+                  echo '```diff'
+                  head -120 .reports/dts-diff.patch
+                  echo '```'
+                fi
+                ;;
+              base-broken)
+                echo "⚠ Base ref produced only \`$BASE_COUNT\` .d.ts files (below floor=10), HEAD produced \`$HEAD_COUNT\`."
+                echo ""
+                echo "Cannot compare against a degraded base. Usually means base ref has a TS error or stale lockfile; rebase HEAD onto a fresh base and re-run."
+                echo ""
+                echo "Tsc base rc: \`$BASE_RC\`."
+                ;;
+              both-broken)
+                echo "⚠ tsc produced too few .d.ts files on both sides: HEAD=\`$HEAD_COUNT\`, base=\`$BASE_COUNT\` (floor=10, rc HEAD=\`$HEAD_RC\` base=\`$BASE_RC\`)."
+                echo ""
+                echo "Likely tooling problem affecting both refs (broken tsconfig, missing dep). Check workflow logs."
+                ;;
+              normal)
+                echo "- Total diff lines: \`$DIFF_LINES\`"
+                echo "- Lines removed (potential breaking changes): \`$REMOVED\`"
+                echo ""
+                if [ "$REMOVED" -gt "0" ]; then
+                  echo "**Heads up**: removed exports or changed signatures may break downstream consumers (opcorbit/console, opcorbit/cargo-portal). Verify before merge."
+                  echo ""
+                  echo "First 80 lines of diff:"
+                  echo '```diff'
+                  head -80 .reports/dts-diff.patch
+                  echo '```'
+                else
+                  echo "No removed exports detected — additive change."
+                fi
+                ;;
+            esac
+            echo ""
+            echo "Full .d.ts diff: see Actions artifact \`api-surface-diff-report\`."
+            echo ""
+            echo "warn-only — does not block merge. Coordinate breaking changes with downstream consumers."
+          } > .reports/api-diff-comment.md
+          gh pr comment "$PR_NUMBER" --body-file .reports/api-diff-comment.md || true
