@@ -1,0 +1,140 @@
+name: API Surface Diff
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: api-surface-diff-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-diff:
+    name: TypeScript .d.ts diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install deps (HEAD)
+        run: npm ci
+
+      - name: Generate .d.ts for HEAD
+        id: head_dts
+        run: |
+          set +e
+          mkdir -p .reports
+          rm -rf /tmp/dts-head
+          npx tsc --noEmit false --emitDeclarationOnly --declaration --declarationDir /tmp/dts-head -p tsconfig.json 2>&1 | tee .reports/tsc-head.log
+          RC=${PIPESTATUS[0]}
+          if [ ! -d /tmp/dts-head ]; then
+            echo "head_generated=false" >> "$GITHUB_OUTPUT"
+            echo "head_rc=$RC" >> "$GITHUB_OUTPUT"
+          else
+            FILE_COUNT=$(find /tmp/dts-head -name '*.d.ts' -type f | wc -l | tr -d ' ')
+            echo "head_generated=true" >> "$GITHUB_OUTPUT"
+            echo "head_file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
+            echo "head_rc=$RC" >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
+
+      - name: Checkout base ref + reinstall + regenerate .d.ts
+        id: base_dts
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set +e
+          # Save tsconfig and source state for HEAD; checkout base ref's source
+          git stash --include-untracked --quiet || true
+          git checkout "origin/$BASE_REF" -- . 2>&1 | head -5
+          rm -rf node_modules
+          npm ci 2>&1 | tail -3
+          rm -rf /tmp/dts-base
+          npx tsc --noEmit false --emitDeclarationOnly --declaration --declarationDir /tmp/dts-base -p tsconfig.json 2>&1 | tee .reports/tsc-base.log
+          RC=${PIPESTATUS[0]}
+          if [ ! -d /tmp/dts-base ]; then
+            echo "base_generated=false" >> "$GITHUB_OUTPUT"
+            echo "base_rc=$RC" >> "$GITHUB_OUTPUT"
+          else
+            FILE_COUNT=$(find /tmp/dts-base -name '*.d.ts' -type f | wc -l | tr -d ' ')
+            echo "base_generated=true" >> "$GITHUB_OUTPUT"
+            echo "base_file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
+            echo "base_rc=$RC" >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
+
+      - name: Compute diff
+        id: diff
+        if: steps.head_dts.outputs.head_generated == 'true' && steps.base_dts.outputs.base_generated == 'true'
+        run: |
+          set +e
+          mkdir -p .reports
+          diff -ruN /tmp/dts-base /tmp/dts-head > .reports/dts-diff.patch
+          DIFF_LINES=$(wc -l < .reports/dts-diff.patch | tr -d ' ')
+          echo "diff_lines=$DIFF_LINES" >> "$GITHUB_OUTPUT"
+          # Quick heuristic: lines beginning with - (removed) inside .d.ts files
+          # are potential breaking changes (removed exports, changed signatures)
+          REMOVED=$(grep -cE '^-[^-]' .reports/dts-diff.patch | tr -d ' ')
+          echo "removed_lines=$REMOVED" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-surface-diff-report
+          path: .reports/
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_OK: ${{ steps.head_dts.outputs.head_generated }}
+          BASE_OK: ${{ steps.base_dts.outputs.base_generated }}
+          HEAD_RC: ${{ steps.head_dts.outputs.head_rc }}
+          BASE_RC: ${{ steps.base_dts.outputs.base_rc }}
+          DIFF_LINES: ${{ steps.diff.outputs.diff_lines }}
+          REMOVED: ${{ steps.diff.outputs.removed_lines }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          {
+            echo "## 🔍 API Surface Diff (.d.ts)"
+            echo ""
+            if [ "$HEAD_OK" != "true" ] || [ "$BASE_OK" != "true" ]; then
+              echo "⚠ tsc failed to generate .d.ts: HEAD=$HEAD_OK (rc=$HEAD_RC), base=$BASE_OK (rc=$BASE_RC)"
+              echo ""
+              echo "API surface comparison unavailable. Check workflow logs."
+            else
+              echo "Compared HEAD against \`$BASE_REF\` declaration files."
+              echo "- Total diff lines: \`$DIFF_LINES\`"
+              echo "- Lines removed (potential breaking changes): \`$REMOVED\`"
+              echo ""
+              if [ "$REMOVED" -gt "0" ]; then
+                echo "**Heads up**: removed exports or changed signatures may break downstream consumers (opcorbit/console, opcorbit/cargo-portal). Verify before merge."
+                echo ""
+                echo "First 80 lines of diff:"
+                echo '```diff'
+                head -80 .reports/dts-diff.patch
+                echo '```'
+              else
+                echo "No removed exports detected — additive change."
+              fi
+              echo ""
+              echo "Full .d.ts diff: see Actions artifact \`api-surface-diff-report\`."
+              echo ""
+              echo "warn-only — does not block merge. Breaking changes should be coordinated with downstream consumers."
+            fi
+          } > .reports/api-diff-comment.md
+          gh pr comment "$PR_NUMBER" --body-file .reports/api-diff-comment.md || true
