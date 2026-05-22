@@ -126,29 +126,58 @@ jobs:
           {
             echo "## 🔍 API Surface Diff (.d.ts)"
             echo ""
-            if [ "$HEAD_OK" != "true" ] || [ "$BASE_OK" != "true" ]; then
-              echo "⚠ tsc failed to generate .d.ts: HEAD=$HEAD_OK (rc=$HEAD_RC), base=$BASE_OK (rc=$BASE_RC)"
-              echo ""
-              echo "API surface comparison unavailable. Check workflow logs."
-            else
-              echo "Compared HEAD against \`$BASE_REF\` declaration files."
-              echo "- Total diff lines: \`$DIFF_LINES\`"
-              echo "- Lines removed (potential breaking changes): \`$REMOVED\`"
-              echo ""
-              if [ "$REMOVED" -gt "0" ]; then
-                echo "**Heads up**: removed exports or changed signatures may break downstream consumers (opcorbit/console, opcorbit/cargo-portal). Verify before merge."
+            echo "Base ref: \`$BASE_REF\` | HEAD .d.ts files: \`$HEAD_COUNT\` | base .d.ts files: \`$BASE_COUNT\` (tsc floor: 10)"
+            echo ""
+            case "$STATE" in
+              head-shrunk-from-healthy)
+                echo "**🚨 MASSIVE API SURFACE CHANGE DETECTED**"
                 echo ""
-                echo "First 80 lines of diff:"
-                echo '```diff'
-                head -80 .reports/dts-diff.patch
-                echo '```'
-              else
-                echo "No removed exports detected — additive change."
-              fi
-              echo ""
-              echo "Full .d.ts diff: see Actions artifact \`api-surface-diff-report\`."
-              echo ""
-              echo "warn-only — does not block merge. Breaking changes should be coordinated with downstream consumers."
-            fi
+                echo "Base produced \`$BASE_COUNT\` .d.ts files but HEAD only \`$HEAD_COUNT\` (below floor=10)."
+                echo ""
+                echo "Because base built cleanly, tsc itself works; HEAD'\''s shrinkage is one of:"
+                echo "1. **Legitimate consolidation refactor** — many exports merged/removed. Downstream consumers (opcorbit/console, opcorbit/cargo-portal) WILL break and need coordinated upgrade."
+                echo "2. **tsc broken on HEAD** — HEAD introduces a TS compile error that aborts declaration emission. Fix the build first."
+                echo ""
+                echo "Either way, **do not merge without explicit reviewer approval**. Diff is captured below for inspection."
+                if [ "$DIFF_PRODUCED" = "true" ]; then
+                  echo ""
+                  echo "First 120 lines of diff:"
+                  echo '```diff'
+                  head -120 .reports/dts-diff.patch
+                  echo '```'
+                fi
+                ;;
+              base-broken)
+                echo "⚠ Base ref produced only \`$BASE_COUNT\` .d.ts files (below floor=10), HEAD produced \`$HEAD_COUNT\`."
+                echo ""
+                echo "Cannot compare against a degraded base. Usually means base ref has a TS error or stale lockfile; rebase HEAD onto a fresh base and re-run."
+                echo ""
+                echo "Tsc base rc: \`$BASE_RC\`."
+                ;;
+              both-broken)
+                echo "⚠ tsc produced too few .d.ts files on both sides: HEAD=\`$HEAD_COUNT\`, base=\`$BASE_COUNT\` (floor=10, rc HEAD=\`$HEAD_RC\` base=\`$BASE_RC\`)."
+                echo ""
+                echo "Likely tooling problem affecting both refs (broken tsconfig, missing dep). Check workflow logs."
+                ;;
+              normal)
+                echo "- Total diff lines: \`$DIFF_LINES\`"
+                echo "- Lines removed (potential breaking changes): \`$REMOVED\`"
+                echo ""
+                if [ "$REMOVED" -gt "0" ]; then
+                  echo "**Heads up**: removed exports or changed signatures may break downstream consumers (opcorbit/console, opcorbit/cargo-portal). Verify before merge."
+                  echo ""
+                  echo "First 80 lines of diff:"
+                  echo '```diff'
+                  head -80 .reports/dts-diff.patch
+                  echo '```'
+                else
+                  echo "No removed exports detected — additive change."
+                fi
+                ;;
+            esac
+            echo ""
+            echo "Full .d.ts diff: see Actions artifact \`api-surface-diff-report\`."
+            echo ""
+            echo "warn-only — does not block merge. Coordinate breaking changes with downstream consumers."
           } > .reports/api-diff-comment.md
           gh pr comment "$PR_NUMBER" --body-file .reports/api-diff-comment.md || true
