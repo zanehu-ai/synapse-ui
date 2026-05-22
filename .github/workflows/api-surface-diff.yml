@@ -38,15 +38,25 @@ jobs:
           rm -rf /tmp/dts-head
           npx tsc --noEmit false --emitDeclarationOnly --declaration --declarationDir /tmp/dts-head -p tsconfig.json 2>&1 | tee .reports/tsc-head.log
           RC=${PIPESTATUS[0]}
-          if [ ! -d /tmp/dts-head ]; then
-            echo "head_generated=false" >> "$GITHUB_OUTPUT"
-            echo "head_rc=$RC" >> "$GITHUB_OUTPUT"
-          else
-            FILE_COUNT=$(find /tmp/dts-head -name '*.d.ts' -type f | wc -l | tr -d ' ')
-            echo "head_generated=true" >> "$GITHUB_OUTPUT"
-            echo "head_file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
-            echo "head_rc=$RC" >> "$GITHUB_OUTPUT"
+          # Floor check: tsc may emit nothing if it crashes early but
+          # still creates the output dir. Treat <FLOOR generated files as
+          # "tsc failed silently" so the diff step does not compare two
+          # empty dirs and falsely report "no removed exports — additive".
+          # synapse-ui has 30+ public surface modules; floor at 10 is
+          # generous.
+          FLOOR=10
+          FILE_COUNT=0
+          if [ -d /tmp/dts-head ]; then
+            FILE_COUNT=$(find /tmp/dts-head -name '*.d.ts' -type f 2>/dev/null | wc -l | tr -d ' ')
           fi
+          if [ "$FILE_COUNT" -ge "$FLOOR" ] && [ "$RC" -eq 0 ]; then
+            echo "head_generated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "head_generated=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::tsc emitted $FILE_COUNT .d.ts (rc=$RC); below FLOOR=$FLOOR"
+          fi
+          echo "head_file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "head_rc=$RC" >> "$GITHUB_OUTPUT"
           exit 0
 
       - name: Checkout base ref + reinstall + regenerate .d.ts
@@ -63,15 +73,19 @@ jobs:
           rm -rf /tmp/dts-base
           npx tsc --noEmit false --emitDeclarationOnly --declaration --declarationDir /tmp/dts-base -p tsconfig.json 2>&1 | tee .reports/tsc-base.log
           RC=${PIPESTATUS[0]}
-          if [ ! -d /tmp/dts-base ]; then
-            echo "base_generated=false" >> "$GITHUB_OUTPUT"
-            echo "base_rc=$RC" >> "$GITHUB_OUTPUT"
-          else
-            FILE_COUNT=$(find /tmp/dts-base -name '*.d.ts' -type f | wc -l | tr -d ' ')
-            echo "base_generated=true" >> "$GITHUB_OUTPUT"
-            echo "base_file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
-            echo "base_rc=$RC" >> "$GITHUB_OUTPUT"
+          FLOOR=10
+          FILE_COUNT=0
+          if [ -d /tmp/dts-base ]; then
+            FILE_COUNT=$(find /tmp/dts-base -name '*.d.ts' -type f 2>/dev/null | wc -l | tr -d ' ')
           fi
+          if [ "$FILE_COUNT" -ge "$FLOOR" ] && [ "$RC" -eq 0 ]; then
+            echo "base_generated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_generated=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::tsc emitted $FILE_COUNT .d.ts (rc=$RC); below FLOOR=$FLOOR"
+          fi
+          echo "base_file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "base_rc=$RC" >> "$GITHUB_OUTPUT"
           exit 0
 
       - name: Compute diff
